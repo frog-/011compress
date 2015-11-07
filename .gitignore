@@ -1,14 +1,7 @@
-
 *.txt
 
 *.dat
 
 *.class
 
-ByteTest.java
-
-ByteTest.c
-
-ByteTest
-
-a.out
+res/
