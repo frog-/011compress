@@ -1,31 +1,17 @@
-/**
- * A basic binary search tree, specifically for Ascii objects.
- *
- * Use update() to start the tree, add to the tree, or update the tree. The one
- * method handles all cases.
- *
- * Why does this not extend BinaryTree? In order to make BinaryTree work with
- * the update() and find() methods, the generic type _must_ implement the 
- * Comparable interface, which would require me to override basically every 
- * method anyways, or to make BinaryTree less generic. Both are unfavourable.
- *
- * Why is this not generic? If it weren't, calls to Ascii object methods would
- * have to be done separately while updating, which would be anti-encapsulation
- **/
 import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.io.*;
 
-public class AsciiBST {
-	private Ascii data;
-	private AsciiBST parent;
-	private AsciiBST left;
-	private AsciiBST right;
-	private static PriorityQueue<Ascii> queue;
+public class BST {
+	private Bits data;
+	private BST parent;
+	private BST left;
+	private BST right;
+	private static PriorityQueue<Bits> queue;
 
-	public AsciiBST() {
+	public BST() {
 		parent = left = right = null;
-		queue = new PriorityQueue<Ascii>(26, new FreqComparator());
+		queue = new PriorityQueue<Bits>(16, new FreqComparator());
 		data = null;
 	}
 
@@ -35,7 +21,7 @@ public class AsciiBST {
 	 *
 	 * @param	data	Dummy Ascii object to store as key
 	 **/
-	private void makeRoot(Ascii data) {
+	private void makeRoot(Bits data) {
 		this.data = data;
 		data.addInstance();
 	}
@@ -47,8 +33,8 @@ public class AsciiBST {
 	 *
 	 * @param	val	A dummy Ascii object initialized with the search key
 	 **/
-	public void update(Ascii val) {
-		AsciiBST lastLeaf = find(val);
+	public void update(Bits val) {
+		BST lastLeaf = find(val);
 
 		//If tree is empty, add as root
 		if (lastLeaf == null) {
@@ -60,7 +46,7 @@ public class AsciiBST {
 
 		//If value is not in tree, add to tree
 		} else {
-			AsciiBST newLeaf = new AsciiBST();
+			BST newLeaf = new BST();
 			newLeaf.setData(val);
 			newLeaf.getData().addInstance();
 			if (lastLeaf.getData().compareTo(val) < 0) {
@@ -80,7 +66,7 @@ public class AsciiBST {
 	 * @param	val	A dummy Ascii object initialized with the search key
 	 * @return 	Reference to AsciiBST object containing specified key
 	 **/
-	public AsciiBST find(Ascii val) {
+	public BST find(Bits val) {
 		/*
 		 * Only an uninitialized root should be empty. Ensure that all trees
 		 * are initialized immediately!
@@ -108,17 +94,22 @@ public class AsciiBST {
 
 
 	/**
-	 * Adds all Ascii objects in the given AsciiBST tree to a priority queue
+	 * Adds all Bits objects in the given BST tree to a priority queue
 	 * based on frequency in the text, least frequent occurring at the front
 	 * of the queue.
 	 *
 	 * @param	tree	The root node of the tree to sort
 	 * @return	The processed PriorityQueue
 	 **/
-	public static PriorityQueue<Ascii> queueByFrequency(AsciiBST tree) {
+	public static PriorityQueue<Bits> queueByFrequency(BST tree) {
 		if (tree != null)
 		{
-			queue.add(tree.getData());
+			//Find final frequency of symbol
+			Bits curr = tree.getData();
+			curr.calculateProbability();
+
+			//Add symbol to queue and recurse
+			queue.add(curr);
 			queueByFrequency(tree.getLeft());
 			queueByFrequency(tree.getRight());
 		}
@@ -131,7 +122,7 @@ public class AsciiBST {
 	 * Add EOF code
 	 **/
 	public void finalize() {
-		Ascii eof = new Ascii('\0');
+		Bits eof = new Bits("0000");
 		update(eof);
 	}
 
@@ -149,10 +140,10 @@ public class AsciiBST {
 	/**
 	 * Comparator to allow sorting by frequency.
 	 **/
-	private class FreqComparator implements Comparator<Ascii> {
+	private class FreqComparator implements Comparator<Bits> {
 
 		@Override
-		public int compare(Ascii letter1, Ascii letter2) {
+		public int compare(Bits letter1, Bits letter2) {
 			if (letter1.getProbability() < letter2.getProbability()) {
 				return -1;
 			} else if (letter1.getProbability() > letter2.getProbability()) {
@@ -167,7 +158,7 @@ public class AsciiBST {
 	/**
 	 * Preorder traversal of tree
 	 **/
-	public static void preorder(AsciiBST tree)
+	public static void preorder(BST tree)
 	{
 		if (tree != null)
 		{
@@ -181,27 +172,27 @@ public class AsciiBST {
 	/**
 	 * Accessors & Mutators
 	 **/
-	public Ascii getData() {
+	public Bits getData() {
 		return data;
 	}
 
-	public void setData(Ascii data) {
+	public void setData(Bits data) {
 		this.data = data;
 	}
 
-	public AsciiBST getLeft() {
+	public BST getLeft() {
 		return left;
 	}
 
-	public void setLeft(AsciiBST tree) {
+	public void setLeft(BST tree) {
 		left = tree;
 	}
 
-	public AsciiBST getRight() {
+	public BST getRight() {
 		return right;
 	}
 
-	public void setRight(AsciiBST tree) {
+	public void setRight(BST tree) {
 		right = tree;
 	}
 }

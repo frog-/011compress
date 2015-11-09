@@ -4,7 +4,7 @@ import java.io.*;
 public class Decompress {
 	private String proc;		//Bits currently being processed
 	private ByteReader data;	//Handles file read operations
-	private AsciiBST tree;		//Stores huffman codes
+	private BST tree;		//Stores huffman codes
 
 
 	/**
@@ -25,8 +25,8 @@ public class Decompress {
 	 *
 	 * @return	A LinkedList containing all Ascii BSTs, or NULL on failure
 	 **/
-	public LinkedList<AsciiBST> readHeader() {
-		LinkedList<AsciiBST> leaves = new LinkedList<>();
+	public LinkedList<BST> readHeader() {
+		LinkedList<BST> leaves = new LinkedList<>();
 	
 		int codesProcessed;		//Number of look-up items added to tree
 
@@ -51,9 +51,9 @@ public class Decompress {
 		 * Process look-up codes.
 		 */
 		for (int i = 0; i < numCodes; i++) {
-			/* Get ASCII character code */
+			/* Get bitstring character code */
 			grabBits(8);
-			char charcode = (char)Integer.parseInt(proc, 2);
+			String bitstring = proc;
 			clear();
 
 			/* Get Huffman code length */
@@ -67,10 +67,10 @@ public class Decompress {
 			clear();
 
 			/* Build BST leaf for letter */
-			AsciiBST leaf = new AsciiBST();
-			Ascii letter = new Ascii(charcode);
-			letter.setCode(code);
-			leaf.update(letter);
+			BST leaf = new BST();
+			Bits symbol = new Bits(bitstring);
+			symbol.setCode(code);
+			leaf.update(symbol);
 			leaves.add(leaf);
 		}
 
@@ -94,17 +94,17 @@ public class Decompress {
 	 *
 	 * @param	leaves	A LinkedList containing single-node BSTs of Ascii objects
 	 **/
-	public void rebuildTree(LinkedList<AsciiBST> leaves) {
-		tree = new AsciiBST();
-		tree.update(new Ascii('0'));
+	public void rebuildTree(LinkedList<BST> leaves) {
+		tree = new BST();
+		tree.update(new Bits("00"));
 
 		/*
 		 * Loop through all nodes in the passed tree.
 		 */
 		while (leaves.size() > 0) {
 			/* Remove a node from the list */
-			AsciiBST branch = tree;
-			Ascii curr = leaves.poll().getData();
+			BST branch = tree;
+			Bits curr = leaves.poll().getData();
 			int codeLength = curr.getCode().length();
 
 			/* 
@@ -112,8 +112,8 @@ public class Decompress {
 			 */
 			for (int i = 0; i < codeLength - 1; i++) {
 				/* Prepare a dummy branch, in case the next node is missing */
-				AsciiBST newBranch = new AsciiBST();
-				newBranch.update(new Ascii('0'));
+				BST newBranch = new BST();
+				newBranch.update(new Bits("00"));
 				
 				/*
 				 * Move left or right, based on a zero or one in the Huff. code
@@ -134,7 +134,7 @@ public class Decompress {
 			/*
 			 * Add new leaf with Ascii object, using the last code digit
 			 */
-			AsciiBST newLeaf = new AsciiBST();
+			BST newLeaf = new BST();
 			newLeaf.update(curr);
 			if (curr.getCode().substring(codeLength-1, codeLength).equals("0")) {
 				branch.setLeft(newLeaf);
@@ -153,36 +153,35 @@ public class Decompress {
 	 * @param	name	Name of the file to write to
 	 **/
 	public void decode(String name) throws Exception {
-		FileWriter fout = new FileWriter(name + "-decompressed.txt");
-		BufferedWriter writer = new BufferedWriter(fout);
+		ByteWriter bw = new ByteWriter(name + "-decoded.txt");
 
 		//Set to true when EOF character is found
 		boolean eof = false;
 
 		while (!eof) {
-			AsciiBST node = tree;
-			char decoded = '\b';
+			BST node = tree;
+			String decoded = "";
 			clear();
 
-			while (decoded == '\b') {
+			while (decoded.equals("")) {
 				grabBits(1);
 
 				String end = proc.substring(proc.length()-1, proc.length());
 				node = (end.equals("0")) ? node.getLeft() : node.getRight();
 
 				if (node.getRight() == null && node.getLeft() == null) {
-					decoded = node.getData().getLetter();
+					decoded = node.getData().getBitstring();
 				}
 			}
 
-			if (decoded == '\0') {
+			if (decoded.equals("0000")) {
 				eof = true;
 			} else {
-				writer.write(decoded);
+				bw.writeByte(decoded);
 			}
 		}
 
-		writer.close();
+		bw.close();
 	}
 
 

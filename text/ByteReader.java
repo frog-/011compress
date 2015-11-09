@@ -19,7 +19,8 @@ public class ByteReader {
 
 		//Attempt to load file for processing
 		try {
-			FileInputStream fin = new FileInputStream(file);
+			BufferedInputStream fin = 
+				new BufferedInputStream(new FileInputStream(file));
 			data = new DataInputStream(fin);
 		} catch (FileNotFoundException fnfe) {
 			System.out.println("Unable to load file. Check filename.");
