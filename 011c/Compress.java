@@ -8,6 +8,7 @@ public class Compress {
 	private BST bytetree;
 
 	public static void main(String[] args) {
+		long starttime = System.currentTimeMillis();
 		Compress c = new Compress(args[0]);
 		if (c.br.loadFailure()) {
 			return;
@@ -18,6 +19,9 @@ public class Compress {
 		Bits.findEncoding(c.generateHuffmanTree(allCodes));
 		c.writeHeader(headerQueue);
 		c.writeBody();
+		long endtime = System.currentTimeMillis();
+		long fulltime = endtime - starttime;
+		System.out.println("Execution time: " + fulltime + "ms");
 	}
 
 
@@ -27,7 +31,9 @@ public class Compress {
 		bytetree = new BST();
 	}
 
-
+	/**
+	 * Collects and counts all bytes 
+	 **/
 	public PriorityQueue<Bits> findFrequencies() {
 		/* Read every byte until EOF */
 		while (!br.eof()) {
@@ -110,7 +116,7 @@ public class Compress {
 		BinaryTree<Bits> tree = new BinaryTree<>();
 
 		//Create dummy node and assign probability
-		Bits join = new Bits("-1");
+		Bits join = new Bits("00");
 		join.setProbability(left.getData().getProbability() 
 						+ right.getData().getProbability());
 
