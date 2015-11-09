@@ -158,7 +158,7 @@ public class Decompress {
 		//Set to true when EOF character is found
 		boolean eof = false;
 
-		while (!eof) {
+		while (!data.eof()) {
 			BST node = tree;
 			String decoded = "";
 			clear();
@@ -173,12 +173,8 @@ public class Decompress {
 					decoded = node.getData().getBitstring();
 				}
 			}
-
-			if (decoded.equals("0000")) {
-				eof = true;
-			} else {
-				bw.writeByte(decoded);
-			}
+			
+			bw.writeByte(decoded);
 		}
 
 		bw.close();
