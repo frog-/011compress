@@ -24,8 +24,8 @@ public class ByteReader {
 		//Attempt to load file for processing
 		try {
 			FileInputStream fin = new FileInputStream(file);
-			data = new DataInputStream(fin);
 			filesize = fin.getChannel().size();
+			data = new DataInputStream(new BufferedInputStream(fin));
 		} 
 		catch (FileNotFoundException fnfe) {
 			System.out.println("Unable to load file. Check filename.");
@@ -142,7 +142,7 @@ public class ByteReader {
 			data.close();
 
 			FileInputStream fin = new FileInputStream(file);
-			data = new DataInputStream(fin);
+			data = new DataInputStream(new BufferedInputStream(fin));
 
 			bytesread = cursor = 0;
 			buffer = "";

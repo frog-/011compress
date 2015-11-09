@@ -20,9 +20,8 @@ public class ByteWriter {
 		data = null;
 
 		try {
-			FileOutputStream fout = 
-				new FileOutputStream(file);
-			data = new DataOutputStream(fout);
+			FileOutputStream fout = new FileOutputStream(file);
+			data = new DataOutputStream(new BufferedOutputStream(fout));
 		} catch (FileNotFoundException fnfe) {
 			System.out.println("Couldn't create output file.");
 		}
@@ -49,7 +48,7 @@ public class ByteWriter {
 		}
 
 		for (int i = 0; i < bits.length; i++) {
-			//Flush buffer and reset if byte is full
+			//Flush buffer and reset, if byte is full
 			if (buffersize == 8) {
 				try {
 					data.write(buffer);
@@ -99,6 +98,10 @@ public class ByteWriter {
 	 * Clear the buffer and close the output file
 	 **/
 	public void close() {
+		/*
+		 * Append zeroes to fill up last byte. Because the last character is
+		 * EOF, the decompressor won't read beyond it anyways.
+		 */
 		while (buffersize < 8) {
 			buffer <<= 1;
 			buffersize++;
