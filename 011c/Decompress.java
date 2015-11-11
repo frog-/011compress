@@ -21,9 +21,9 @@ public class Decompress {
 
 	/**
 	 * Reads the header from the compressed file, and packages the info into
-	 * Ascii objects, each within their own single-node BST.
+	 * Bits objects, each within their own single-node BST.
 	 *
-	 * @return	A LinkedList containing all Ascii BSTs, or NULL on failure
+	 * @return	A LinkedList containing all BSTs, or NULL on failure
 	 **/
 	public LinkedList<BST> readHeader() {
 		LinkedList<BST> leaves = new LinkedList<>();
@@ -162,9 +162,12 @@ public class Decompress {
 	 *
 	 * @param	name	Name of the file to write to
 	 **/
-	public void decode(String name) throws Exception {
-		ByteWriter bw = new ByteWriter(name + "-decoded.txt");
+	public void decode(String name) {
+		ByteWriter bw = new ByteWriter(name + "-restored");
 
+		/*
+		 * Read bytes until none are left.
+		 */
 		while (!data.eof()) {
 			BST node = tree;
 			String decoded = "";
@@ -173,6 +176,11 @@ public class Decompress {
 			while (decoded.equals("")) {
 				grabBits(1);
 
+				/*
+				 * Follow the bits read from file through the Huffman tree
+				 * until a leaf is found. Once found, convert the code back
+				 * to the original bitstring.
+				 */
 				String end = proc.substring(proc.length()-1, proc.length());
 				node = (end.equals("0")) ? node.getLeft() : node.getRight();
 
@@ -181,15 +189,18 @@ public class Decompress {
 				}
 			}
 			
-			//If EOF byte is found, quit writing to file.
-			if(!decoded.equals("0000")) {
-				bw.writeByte(decoded);
-			} else {
+			/* 
+			 * If EOF byte is found, quit writing to file.
+			 */
+			if (decoded.equals("0000")) {
 				System.out.println("Found the null byte!");
 				break;
 			}
+
+			//Write translated H. code to target as byte
+			bw.writeByte(decoded);
 		}
-		bw.close(true);
+		bw.close();
 	}
 
 
@@ -210,8 +221,10 @@ public class Decompress {
 	}
 
 
-	public static void main(String[] args) throws Exception {
-		//Load target file for processing.
+	public static void main(String[] args) {
+		/*
+		 * Load target file for processing. Quit if it doesn't load.
+		 */
 		Decompress d = new Decompress(args[0]);
 		if(d.data.loadFailure()) {
 			return;
@@ -220,7 +233,7 @@ public class Decompress {
 		//Attempt to read the header and rebuild the original Huffman tree
 		d.rebuildTree(d.readHeader());
 
-		//
+		//Convert all codes back to their original bitstrings
 		d.decode(args[0]);
 	}
 }

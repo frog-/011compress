@@ -6,7 +6,7 @@ public class ByteReader {
 	private DataInputStream data;		//Loads compressed file
 	private long filesize;				//Size of loaded file
 	private long bytesread;				//Number of bytes that have been read
-	private String file;
+	private String file;				//Name of the file loaded
 
 
 	/**
@@ -56,7 +56,7 @@ public class ByteReader {
 	 * If a failure occurs when reading a byte, either the header specified
 	 * the wrong length for the code, or the header specified wrong codes.
 	 *
-	 * @return	
+	 * @return	Stringified binary of byte
 	 **/
 	private String readByte() {
 		String in = null;

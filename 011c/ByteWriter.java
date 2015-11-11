@@ -96,28 +96,24 @@ public class ByteWriter {
 
 	/**
 	 * Clears the buffer and closes the output file.
-	 *
-	 * @param	trailingZeroes	Should be true only during compression
 	 **/
-	public void close(boolean trailingZeroes) {
-		if (trailingZeroes) {
-			/*
-			 * Append zeroes to fill up last byte. Because the last character is
-			 * EOF, the decompressor won't read beyond it anyways.
-			 */
-			if (buffersize != 0) {
-				while (buffersize < 8) {
-					buffer <<= 1;
-					buffersize++;
-				}
+	public void close() {
+		/*
+		 * Append zeroes to fill up last byte. Because the last character is
+		 * EOF, the decompressor won't read beyond it anyways.
+		 */
+		if (buffersize != 0) {
+			while (buffersize < 8) {
+				buffer <<= 1;
+				buffersize++;
+			}
 
-				try {
-					data.write(buffer);
-					System.out.println("Last byte written: " + buffer);
-				} catch (IOException ioe) {
-					System.out.println("Failed flushing buffer.");
-				}
-			}			
+			try {
+				data.write(buffer);
+				System.out.println("Last byte written: " + buffer);
+			} catch (IOException ioe) {
+				System.out.println("Failed flushing buffer.");
+			}
 		}
 
 		try {

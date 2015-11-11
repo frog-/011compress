@@ -7,38 +7,23 @@ public class Compress {
 	private ByteWriter bw;
 	private BST bytetree;
 
-	public static void main(String[] args) {
-		long starttime = System.currentTimeMillis();
-		Compress c = new Compress(args[0]);
-		if (c.br.loadFailure()) {
-			return;
-		}
 
-		PriorityQueue<Bits> allCodes = c.findFrequencies();
-		PriorityQueue<Bits> headerQueue = new PriorityQueue<Bits>(allCodes);
-		Bits.findEncoding(c.generateHuffmanTree(allCodes));
-
-		if (headerQueue.size() < 2) {
-			System.out.println("Unable to compress, no codes generated.");
-			return;
-		}
-
-		c.writeHeader(headerQueue);
-		c.writeBody();
-		long endtime = System.currentTimeMillis();
-		long fulltime = endtime - starttime;
-		System.out.println("Execution time: " + fulltime + "ms");
-	}
-
-
+	/**
+	 * Returns a Compress object, which contains references to the source and
+	 * target files.
+	 **/
 	public Compress(String file) {
 		br = new ByteReader(file);
-		bw = new ByteWriter(file + "-gerbils");
+		bw = new ByteWriter(file + ".011");
 		bytetree = new BST();
 	}
 
+
 	/**
-	 * Collects and counts all bytes 
+	 * Collects and counts all bytes, returns them in ascending order of
+	 * frequency.
+	 *
+	 * @return	A PriorityQueue with all Bits from least to most common
 	 **/
 	public PriorityQueue<Bits> findFrequencies() {
 		/* Read every byte until EOF */
@@ -66,6 +51,12 @@ public class Compress {
 	}
 
 
+	/**
+	 * Constructs a Huffman tree of all read Bits, which places less frequent
+	 * nodes further from the root.
+	 *
+	 * @return	BinaryTree to be used for encoding
+	 **/
 	public BinaryTree<Bits> generateHuffmanTree(PriorityQueue<Bits> queue) {
 		//Process first elements
 		BinaryTree<Bits> left = new BinaryTree<>();
@@ -135,10 +126,14 @@ public class Compress {
 	}
 
 
-	public static BinaryTree<Bits> findProbTree(PriorityQueue<Bits> s, 
-											LinkedList<BinaryTree<Bits>> t) {
-		BinaryTree<Bits> tree = new BinaryTree<>();
-
+	/**
+	 * Chooses the least-frequently-occurring tree from the "tree" list and
+	 * the "leaf" list.
+	 *
+	 * @return	BinaryTree with the lowest root frequency
+	 **/
+	public static BinaryTree<Bits> findProbTree(
+			PriorityQueue<Bits> s, LinkedList<BinaryTree<Bits>> t) {
 		/*
 		 * Make sure there is something left to process
 		 */
@@ -160,8 +155,11 @@ public class Compress {
 			}
 		}
 
+		//Set leaf as base of new branch
+		BinaryTree<Bits> tree = new BinaryTree<>();
 		tree.makeRoot(letter1);
 		s.poll();
+
 		return tree;
 	}
 
@@ -171,12 +169,13 @@ public class Compress {
 	 * used to rebuild the Huffman tree during decompression.
 	 *
 	 * The header begins with an SOH byte (0x01). This is followed by a byte
-	 * representing the number of huffman codes in the header. The look-up 
-	 * items are subsequently listed, which link an 8bit bitstring with
-	 * the corresponding Huffman code. Look-up entries have the form:
-	 *
-	 * 00000000 00000000 0000...0000
-	 *   Bits   Length  Huffman code
+	 * representing the number of huffman codes in the header, and the encoding
+	 * of the NULL byte.
+	 * 
+	 * The look-up items are subsequently listed, which link an 8bit bitstring 
+	 * with the corresponding Huffman code. Look-up entries have the form:
+	 * 			00000000 00000000 0000...0000
+	 *  		   Bits   Length  Huffman code
 	 *
 	 * The length entry specifies the length of the code (the maximum
 	 * length is arbitrarily 256 bits).
@@ -184,7 +183,6 @@ public class Compress {
 	 * The header concludes with an STX byte (0x02).
 	 * 
 	 * @param	queue	PriorityQueue of Ascii objects
-	 * @param	out	DataOutputStream linked to target file
 	 **/
 	public void writeHeader(PriorityQueue<Bits> queue) {
 		//Write SOH byte
@@ -208,7 +206,7 @@ public class Compress {
 			 */
 			String bitstring = curr.getBitstring();
 			if (bitstring.equals("0000")) {
-				bw.writeByte(bitstring);	//Write null byte
+				bw.writeByte(bitstring);			//Write null byte
 			} else {
 				bw.fillByte(curr.getBitstring());	//Write normal byte
 			}
@@ -231,7 +229,11 @@ public class Compress {
 	}
 
 
+	/**
+	 * Encodes each byte of the source file and writes to the target file.
+	 **/
 	public void writeBody() {
+		//Return to beginning of source file
 		br.reset();
 
 		//Track compression ratio
@@ -264,8 +266,48 @@ public class Compress {
 		String code = key.getCode();
 		System.out.println("Writing EOF @" + code);
 		bw.writeByte(code);
-		bw.close(true);
+		bw.close();
 
 		System.out.println("Average code length: " + (double)codes / (double)numCodes);
 	}
+
+
+	public static void main(String[] args) {
+		//Track compression time
+		long starttime = System.currentTimeMillis();
+
+		/* 
+		 * Ensure source and target files can be opened
+		 */
+		Compress c = new Compress(args[0]);
+		if (c.br.loadFailure()) {
+			return;
+		}
+
+		//Read the source file, analyze for byte frequency
+		PriorityQueue<Bits> allCodes = c.findFrequencies();
+		PriorityQueue<Bits> headerQueue = new PriorityQueue<Bits>(allCodes);
+
+		//Find the Huffman codes for the generated tree
+		Bits.findEncoding(c.generateHuffmanTree(allCodes));
+
+		/*
+		 * If there are less than two codes, something likely went wrong.
+		 */
+		if (headerQueue.size() < 2) {
+			System.out.println("Unable to compress, no codes generated.");
+			return;
+		}
+
+		/*
+		 * Write the header to the target file, and then process the source
+		 * file entirely.
+		 */
+		c.writeHeader(headerQueue);
+		c.writeBody();
+
+		long exectime = System.currentTimeMillis() - starttime;
+		System.out.println("Execution time: " + exectime + "ms");
+	}
+
 }

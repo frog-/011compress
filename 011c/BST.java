@@ -1,17 +1,21 @@
 import java.util.PriorityQueue;
 import java.util.Comparator;
-import java.io.*;
 
 public class BST {
 	private Bits data;
 	private BST parent;
 	private BST left;
 	private BST right;
+	//This shouldn't exist, it was just easiest at the time
 	private static PriorityQueue<Bits> queue;
 
+
+	/**
+	 * Returns a new, uninitialized BST object.
+	 **/
 	public BST() {
 		parent = left = right = null;
-		queue = new PriorityQueue<Bits>(16, new FreqComparator());
+		queue = new PriorityQueue<Bits>(257, new FreqComparator());
 		data = null;
 	}
 
@@ -19,21 +23,28 @@ public class BST {
 	/**
 	 * Gives the tree its first node.
 	 *
-	 * @param	data	Dummy Ascii object to store as key
+	 * @param	data	Dummy Bits object to store as key
 	 **/
 	private void makeRoot(Bits data) {
 		this.data = data;
+
+		//Set the count to 1.
 		data.addInstance();
 	}
 
 
 	/**
-	 * Updates an existing Ascii object, or adds the object if it can't be
-	 * found, including if the tree is empty.
+	 * Updates an existing Bits object, or adds the object to the tree if it 
+	 * can't be found, including if the tree is empty.
 	 *
-	 * @param	val	A dummy Ascii object initialized with the search key
+	 * There is no "add" method, and outside code has no reason to manually set
+	 * roots, so all operations which involve adding info to the tree are
+	 * handled through update().
+	 *
+	 * @param	val	A dummy Bits object initialized with the search key
 	 **/
 	public void update(Bits val) {
+		//Search for 'val' in the BST
 		BST lastLeaf = find(val);
 
 		//If tree is empty, add as root
@@ -49,6 +60,8 @@ public class BST {
 			BST newLeaf = new BST();
 			newLeaf.setData(val);
 			newLeaf.getData().addInstance();
+
+			//Add left or right, depending on parent's value
 			if (lastLeaf.getData().compareTo(val) < 0) {
 				lastLeaf.setRight(newLeaf);
 			} else {
@@ -59,12 +72,12 @@ public class BST {
 
 
 	/**
-	 * Finds an AsciiBST object that contains the argument. If the argument 
-	 * is not found in the tree, returns the AsciiBST that would be the parent,
+	 * Finds a BST object that contains the argument. If the argument 
+	 * is not found in the tree, returns the BST that would be the parent,
 	 * or NULL if the tree is empty.
 	 *
-	 * @param	val	A dummy Ascii object initialized with the search key
-	 * @return 	Reference to AsciiBST object containing specified key
+	 * @param	val	A dummy Bits object initialized with the search key
+	 * @return 	Reference to BST object containing specified key
 	 **/
 	public BST find(Bits val) {
 		/*
@@ -102,8 +115,7 @@ public class BST {
 	 * @return	The processed PriorityQueue
 	 **/
 	public static PriorityQueue<Bits> queueByFrequency(BST tree) {
-		if (tree != null)
-		{
+		if (tree != null) {
 			//Find final frequency of symbol
 			Bits curr = tree.getData();
 			curr.calculateProbability();
@@ -119,11 +131,25 @@ public class BST {
 
 
 	/**
-	 * Add EOF code
+	 * Adds EOF object, so the compressed file can have a clear end.
+	 *
+	 * This should be called after the input file has been read, but before
+	 * the Huffman codes are generated.
 	 **/
 	public void finalize() {
+		/*
+		 * The value is written to file as 4bits so that there can be no byte-
+		 * collision.
+		 */
 		Bits eof = new Bits("0000");
 		update(eof);
+
+		/*
+		 * Set the probability to zero to force the null byte to the top. At
+		 * the moment this is ABSOLUTELY NECESSARY because the decompressor
+		 * tries to read the null byte first.
+		 */
+		eof.setNullByte();
 	}
 
 
@@ -138,10 +164,10 @@ public class BST {
 
 
 	/**
-	 * Comparator to allow sorting by frequency.
+	 * Comparator to allow sorting by frequency. Less frequent items should
+	 * appear "before" more frequent items.
 	 **/
 	private class FreqComparator implements Comparator<Bits> {
-
 		@Override
 		public int compare(Bits letter1, Bits letter2) {
 			if (letter1.getProbability() < letter2.getProbability()) {
@@ -156,12 +182,13 @@ public class BST {
 
 
 	/**
-	 * Preorder traversal of tree
+	 * Traverses the tree in a Root-Left-Right pattern.
+	 *
+	 * This is only here for debugging purposes.
 	 **/
 	public static void preorder(BST tree)
 	{
-		if (tree != null)
-		{
+		if (tree != null) {
 			System.out.println(tree.getData());
 			preorder(tree.getLeft());	
 			preorder(tree.getRight());
