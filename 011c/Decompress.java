@@ -4,7 +4,7 @@ import java.io.*;
 public class Decompress {
 	private String proc;		//Bits currently being processed
 	private ByteReader data;	//Handles file read operations
-	private BST tree;		//Stores huffman codes
+	private BST tree;			//Stores huffman codes
 
 
 	/**
@@ -38,32 +38,42 @@ public class Decompress {
 			System.out.println("File is corrupted or not compressed");
 			return null;
 		}
+		System.out.println(proc);
 		clear();
 
 		/*
-		 * Determine number of codes to process
+		 * Determine number of codes to process.
+		 * Offset by +2 to allow for 257 unique codes.
 		 */
 		grabBits(8);
-		int numCodes = Integer.parseInt(proc, 2);
+		int numCodes = Integer.parseInt(proc, 2) + 2;
+		System.out.println(proc);
 		clear();
 
 		/*
-		 * Process look-up codes.
+		 * Process look-up codes, reading NULL byte first
 		 */
 		for (int i = 0; i < numCodes; i++) {
 			/* Get bitstring character code */
-			grabBits(8);
+			if (i == 0) {
+				grabBits(4);	//Null byte
+			} else {
+				grabBits(8);	//Regular byte
+			}
 			String bitstring = proc;
+			System.out.print(bitstring + "\t");
 			clear();
 
 			/* Get Huffman code length */
 			grabBits(8);
 			int length = Integer.parseInt(proc, 2);
+			System.out.print(length + "\t");
 			clear();
 
 			/* Get Huffman code */
 			grabBits(length);
 			String code = proc;
+			System.out.println(code);
 			clear();
 
 			/* Build BST leaf for letter */
@@ -79,7 +89,7 @@ public class Decompress {
 		 */
 		grabBits(8);
 		if (!proc.equals("00000010")) {
-			System.out.println("Header corrupt");
+			System.out.println("Header corrupt: end of header without STX");
 			return null;
 		}
 		clear();
@@ -148,15 +158,12 @@ public class Decompress {
 	/**
 	 * Reads in bits, one at a time, navigating the rebuilt BST according to
 	 * the parity of the bit. When a node is reached that has no child nodes,
-	 * its ASCII code is taken and written to file.
+	 * its bitstring is taken and written to file.
 	 *
 	 * @param	name	Name of the file to write to
 	 **/
 	public void decode(String name) throws Exception {
 		ByteWriter bw = new ByteWriter(name + "-decoded.txt");
-
-		//Set to true when EOF character is found
-		boolean eof = false;
 
 		while (!data.eof()) {
 			BST node = tree;
@@ -174,10 +181,15 @@ public class Decompress {
 				}
 			}
 			
-			bw.writeByte(decoded);
+			//If EOF byte is found, quit writing to file.
+			if(!decoded.equals("0000")) {
+				bw.writeByte(decoded);
+			} else {
+				System.out.println("Found the null byte!");
+				break;
+			}
 		}
-
-		bw.close();
+		bw.close(true);
 	}
 
 
@@ -211,5 +223,4 @@ public class Decompress {
 		//
 		d.decode(args[0]);
 	}
-
 }

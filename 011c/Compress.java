@@ -17,6 +17,12 @@ public class Compress {
 		PriorityQueue<Bits> allCodes = c.findFrequencies();
 		PriorityQueue<Bits> headerQueue = new PriorityQueue<Bits>(allCodes);
 		Bits.findEncoding(c.generateHuffmanTree(allCodes));
+
+		if (headerQueue.size() < 2) {
+			System.out.println("Unable to compress, no codes generated.");
+			return;
+		}
+
 		c.writeHeader(headerQueue);
 		c.writeBody();
 		long endtime = System.currentTimeMillis();
@@ -184,20 +190,37 @@ public class Compress {
 		//Write SOH byte
 		bw.writeByte("00000001");
 
-		//Write number of codes
-		bw.fillByte(Integer.toBinaryString(queue.size()));
+		/*
+		 * Write number of codes.
+		 * This is antiquated and should be replaced by a permanently 257 code
+		 * system.
+		 * At present, the -2 is to allow 256 unique bytes to be expressed in
+		 * 8 bits, as well as leaving room for the EOF code.
+		 */
+		bw.fillByte(Integer.toBinaryString(queue.size() - 2));
 
 		Bits curr = queue.poll();
-		while (curr != null)
-		{
-			//Write underlying byte to file
-			bw.fillByte(curr.getBitstring());
+		while (curr != null) {
+			/*
+			 * Write underlying byte to file. If the null byte is encountered,
+			 * it is written without padding zeroes, to allow for a 257th
+			 * value. Not pretty.
+			 */
+			String bitstring = curr.getBitstring();
+			if (bitstring.equals("0000")) {
+				bw.writeByte(bitstring);	//Write null byte
+			} else {
+				bw.fillByte(curr.getBitstring());	//Write normal byte
+			}
+			System.out.print(curr.getBitstring() + "\t");
 
 			//Convert code length to binary string and send to buffer
 			bw.fillByte(Integer.toBinaryString(curr.getCode().length()));
+			System.out.print(Integer.toBinaryString(curr.getCode().length()));
 
 			//Send Huffman code to buffer
 			bw.writeByte(curr.getCode());
+			System.out.println("\t" + curr.getCode());
 
 			//Process next Ascii object
 			curr = queue.poll();
@@ -218,17 +241,16 @@ public class Compress {
 		/*
 		 * Read every character until EOF, write encoding to target file
 		 */
-		String curr = br.grabBits(8);
 		while (!br.eof()) {
-			//Look up Huffman code for character
+			//Grab next byte
+			String curr = br.grabBits(8);
+
+			//Look up Huffman code for byte
 			Bits key = bytetree.find(new Bits(curr)).getData();
 			String code = key.getCode();
 
 			//Write to binary file
 			bw.writeByte(code);
-
-			//Grab next character
-			curr = br.grabBits(8);
 
 			//Update code stuff
 			codes += code.length();
@@ -240,8 +262,9 @@ public class Compress {
 		 */
 		Bits key = bytetree.find(new Bits("0000")).getData();
 		String code = key.getCode();
+		System.out.println("Writing EOF @" + code);
 		bw.writeByte(code);
-		bw.close();
+		bw.close(true);
 
 		System.out.println("Average code length: " + (double)codes / (double)numCodes);
 	}
