@@ -60,7 +60,6 @@ public class ByteReader {
 	 **/
 	private String readByte() {
 		String in = null;
-
 		try {
 			in = Integer.toBinaryString(data.readUnsignedByte());
 			bytesread++;
@@ -72,7 +71,7 @@ public class ByteReader {
 		}
 		catch (IOException ioe) {
 			System.out.println(
-				"Data cannot be read, possibly corrupted header."
+				"Attempting to read beyond EOF"
 			);
 		}
 
