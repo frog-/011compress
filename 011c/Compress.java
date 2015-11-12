@@ -1,11 +1,12 @@
 import java.io.*;
 import java.util.PriorityQueue;
 import java.util.LinkedList;
+import java.util.Comparator;
 
 public class Compress {
 	private ByteReader br;
 	private ByteWriter bw;
-	private BST bytetree;
+	private Bits[] byteTable;
 
 
 	/**
@@ -15,7 +16,18 @@ public class Compress {
 	public Compress(String file) {
 		br = new ByteReader(file);
 		bw = new ByteWriter(file + ".011");
-		bytetree = new BST();
+		byteTable = new Bits[257];
+
+		/* Create Bits objects for all values from 0 to 255 */
+		for (int i = 0; i < 256; i++) {
+			String asByte = 
+				String.format("%8s", 
+					Integer.toBinaryString(i)).replace(' ', '0');
+			byteTable[i] = new Bits(asByte);
+		}
+
+		/* Add null byte to mark EOF */
+		byteTable[256] = new Bits("0000");
 	}
 
 
@@ -26,28 +38,33 @@ public class Compress {
 	 * @return	A PriorityQueue with all Bits from least to most common
 	 **/
 	public PriorityQueue<Bits> findFrequencies() {
-		/* Read every byte until EOF */
+		/* 
+		 * Read and count every byte until EOF 
+		 */
 		while (!br.eof()) {
-			String bits = br.grabBits(8);
-			bytetree.update(new Bits(bits));
+			/* Convert byte to integer value */
+			int value = Integer.parseInt(br.grabBits(8), 2);
+
+			/* Record byte */
+			byteTable[value].addInstance();
 		}
-
-		//Add EOF character
-		bytetree.finalize();
-
-		if (bytetree.isEmpty()) {
-			System.out.println("File appears to have been empty...");
-		}
-
-		//Done with file for now
-		br.close();
 
 		/*
-		 * Probability tree is constructed. Characters in the BST are sorted
-		 * by frequency, and then joined together into a tree, with lowest
-		 * frequency terms most distant from the root node
+		 * Bits are ordered by frequency, from least to most common
 		 */
-		return BST.queueByFrequency(bytetree);
+		PriorityQueue<Bits> queue = 
+			new PriorityQueue<>(256, new FreqComparator());
+
+		for (int i = 0; i < 256; i++) {
+			if (byteTable[i].getCount() > 0) {
+				queue.add(byteTable[i]);
+			}
+		}
+
+		//Add null byte, which is an exception to the positive count rule
+		queue.add(byteTable[256]);
+
+		return queue;
 	}
 
 
@@ -114,8 +131,8 @@ public class Compress {
 
 		//Create dummy node and assign probability
 		Bits join = new Bits("00");
-		join.setProbability(left.getData().getProbability() 
-						+ right.getData().getProbability());
+		join.setCount(left.getData().getCount() 
+						+ right.getData().getCount());
 
 		//Join trees and return
 		tree.makeRoot(join);
@@ -150,7 +167,7 @@ public class Compress {
 		 */
 		if (letter2 != null) {
 			if (letter1 == null || 
-					letter1.getProbability() > letter2.getProbability()) {
+					letter1.getCount() > letter2.getCount()) {
 				return t.poll();
 			}
 		}
@@ -248,8 +265,8 @@ public class Compress {
 			String curr = br.grabBits(8);
 
 			//Look up Huffman code for byte
-			Bits key = bytetree.find(new Bits(curr)).getData();
-			String code = key.getCode();
+			int index = Integer.parseInt(curr, 2);
+			String code = byteTable[index].getCode();
 
 			//Write to binary file
 			bw.writeByte(code);
@@ -262,13 +279,30 @@ public class Compress {
 		/*
 		 * Write EOF and clear write buffer
 		 */
-		Bits key = bytetree.find(new Bits("0000")).getData();
-		String code = key.getCode();
+		String code = byteTable[256].getCode();
 		System.out.println("Writing EOF @" + code);
 		bw.writeByte(code);
 		bw.close();
 
 		System.out.println("Average code length: " + (double)codes / (double)numCodes);
+	}
+
+
+	/**
+	 * Comparator to allow sorting by frequency. Less frequent items should
+	 * appear "before" more frequent items.
+	 **/
+	private class FreqComparator implements Comparator<Bits> {
+		@Override
+		public int compare(Bits arg1, Bits arg2) {
+			if (arg1.getCount() < arg2.getCount()) {
+				return -1;
+			} else if (arg1.getCount() > arg2.getCount()) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
 	}
 
 
@@ -309,5 +343,4 @@ public class Compress {
 		long exectime = System.currentTimeMillis() - starttime;
 		System.out.println("Execution time: " + exectime + "ms");
 	}
-
 }
