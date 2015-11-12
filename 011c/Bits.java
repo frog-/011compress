@@ -1,8 +1,6 @@
 public class Bits implements Comparable<Bits> {
-	private static long total;		//Number of letters in document
 	private String bitstring;		//Byte associated with object
 	private long count;				//Number of occurrences of byte
-	private double prob;			//Frequency of occurence
 	private String code;			//Huffman code for byte
 
 
@@ -18,44 +16,25 @@ public class Bits implements Comparable<Bits> {
 
 
 	/**
-	 * Determines the frequency of the byte relative to total number of bytes.
-	 *
-	 * This should be called only after the source document has been parsed.
-	 **/
-	public void calculateProbability() {
-		setProbability( (double)count / (double)total );
-	}
-
-
-	/**
 	 * Increments the count of the calling byte, and document total, by one.
 	 **/
 	public void addInstance() {
 		count++;
-		total++;
 	}
 
 
 	/**
-	 * Sets the probability of the calling object.
+	 * Sets the count of the calling object.
 	 *
 	 * This _should not_ be used manually for true Bits objects. Its purpose is
 	 * to allow dummy nodes to have probabilities during construction of the
-	 * Huffman tree. Use calculateProbability() to determine the frequency of a
-	 * true node.
+	 * Huffman tree. Generally, the argument passed should be the sum of the 
+	 * two nodes being added.
 	 *
-	 * @param	prob	The probability to set
+	 * @param	count	The combined counts to set for the dummy node
 	 **/
-	public void setProbability(double prob) {
-		this.prob = prob;
-	}
-
-
-	/**
-	 * Sets the count to zero, forcing this node to the top of the header.
-	 **/
-	public void setNullByte() {
-		count = 0;
+	public void setCount(long count) {
+		this.count = count;
 	}
 
 
@@ -95,23 +74,15 @@ public class Bits implements Comparable<Bits> {
 	}
 
 	public String toString() {
-		return bitstring + "\t" + code + "\t\t\t" + String.format("%.6f", prob);
+		return bitstring + "\t\t" + code;
 	}
 
 
 	/**
 	 * Accessors and Mutators
 	 **/
-	public static long getInstances() {
-		return total;
-	}
-
 	public long getCount() {
 		return count;
-	}
-
-	public double getProbability() {
-		return prob;
 	}
 
 	public String getBitstring() {

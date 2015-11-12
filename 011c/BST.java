@@ -1,13 +1,8 @@
-import java.util.PriorityQueue;
-import java.util.Comparator;
-
 public class BST {
 	private Bits data;
 	private BST parent;
 	private BST left;
 	private BST right;
-	//This shouldn't exist, it was just easiest at the time
-	private static PriorityQueue<Bits> queue;
 
 
 	/**
@@ -15,7 +10,6 @@ public class BST {
 	 **/
 	public BST() {
 		parent = left = right = null;
-		queue = new PriorityQueue<Bits>(257, new FreqComparator());
 		data = null;
 	}
 
@@ -107,77 +101,12 @@ public class BST {
 
 
 	/**
-	 * Adds all Bits objects in the given BST tree to a priority queue
-	 * based on frequency in the text, least frequent occurring at the front
-	 * of the queue.
-	 *
-	 * @param	tree	The root node of the tree to sort
-	 * @return	The processed PriorityQueue
-	 **/
-	public static PriorityQueue<Bits> queueByFrequency(BST tree) {
-		if (tree != null) {
-			//Find final frequency of symbol
-			Bits curr = tree.getData();
-			curr.calculateProbability();
-
-			//Add symbol to queue and recurse
-			queue.add(curr);
-			queueByFrequency(tree.getLeft());
-			queueByFrequency(tree.getRight());
-		}
-
-		return queue;
-	}
-
-
-	/**
-	 * Adds EOF object, so the compressed file can have a clear end.
-	 *
-	 * This should be called after the input file has been read, but before
-	 * the Huffman codes are generated.
-	 **/
-	public void finalize() {
-		/*
-		 * The value is written to file as 4bits so that there can be no byte-
-		 * collision.
-		 */
-		Bits eof = new Bits("0000");
-		update(eof);
-
-		/*
-		 * Set the probability to zero to force the null byte to the top. At
-		 * the moment this is ABSOLUTELY NECESSARY because the decompressor
-		 * tries to read the null byte first.
-		 */
-		eof.setNullByte();
-	}
-
-
-	/**
 	 * Determines if the BST has been initialized
 	 *
 	 * @return	True if tree is uninitialized
 	 **/
 	public boolean isEmpty() {
 		return data == null;
-	}
-
-
-	/**
-	 * Comparator to allow sorting by frequency. Less frequent items should
-	 * appear "before" more frequent items.
-	 **/
-	private class FreqComparator implements Comparator<Bits> {
-		@Override
-		public int compare(Bits letter1, Bits letter2) {
-			if (letter1.getProbability() < letter2.getProbability()) {
-				return -1;
-			} else if (letter1.getProbability() > letter2.getProbability()) {
-				return 1;
-			} else {
-				return 0;
-			}
-		}
 	}
 
 
