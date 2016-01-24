@@ -86,7 +86,7 @@ public class ByteReader {
 	 * @return	N-length bitstring
 	 **/
 	public String grabBits(int n) {
-		String bits = "";
+		StringBuilder bits = new StringBuilder(8);
 
 		for (int i = 0; i < n; i++) {
 			/*
@@ -103,10 +103,10 @@ public class ByteReader {
 				}
 			}
 
-			bits += buffer.substring(cursor++, cursor);
+			bits.append(buffer.substring(cursor++, cursor));
 		}
 		
-		return bits;
+		return bits.toString();
 	}
 
 

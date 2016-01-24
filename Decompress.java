@@ -181,8 +181,7 @@ public class Decompress {
 				 * until a leaf is found. Once found, convert the code back
 				 * to the original bitstring.
 				 */
-				String end = proc.substring(proc.length()-1, proc.length());
-				node = (end.equals("0")) ? node.getLeft() : node.getRight();
+				node = (proc.equals("0")) ? node.getLeft() : node.getRight();
 
 				if (node.getRight() == null && node.getLeft() == null) {
 					decoded = node.getData().getBitstring();
